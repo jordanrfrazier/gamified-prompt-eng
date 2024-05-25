@@ -28,14 +28,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 PROMPT = """
-Given a PGN of the chess board, choose a legal move that corresponds to your strategy and respond in JSON format with a single field "move".
-Do NOT use a move from the invalid_moves list.
+Analyze the current board state, then choose the best legal move that corresponds to your strategy.
+Respond in JSON format with a two fields: "move", and "reason", where "move" is the move you want to make and "reason" is the reason you chose that move.
 
-Board: {board}
+Do NOT use any illegal moves. You may need to make multiple moves in order to satisfy your strategy. For example,
+if the strategy is "move your bishops forward", you may need to move other pieces out of the way first. 
 
-Legal moves: {legal_moves}
+Here is the current board state (FEN): {board}
 
-Invalid moves: {invalid_moves}
+The legal moves from this position are: {legal_moves}
+
+The illegal moves from this position are: {invalid_moves}
 
 Your move:
 """
@@ -56,7 +59,9 @@ def try_move(player, board, pgn, legal_moves, invalid_moves = None):
     logger.debug(f"Legal moves: {legal_moves}")
     logger.debug(f"Invalid moves: {invalid_moves}")
 
-    move = player.invoke({"board": pgn, "legal_moves": legal_moves, "invalid_moves": str(invalid_moves)})
+    # move = player.invoke({"board": pgn, "legal_moves": legal_moves, "invalid_moves": str(invalid_moves)})
+    move = player.invoke({"board": board.fen, "legal_moves": legal_moves, "invalid_moves": str(invalid_moves)})
+    logger.info(f"Making move {move['move']} with reason {move['reason']}")
     move = move["move"]
     try:
         board.push_san(move)
@@ -89,13 +94,13 @@ def game_loop(board: chess.Board, llm1, llm2):
         try_move(p2, board, pgn, legal_moves)
 
         logger.info(f"\n{board}")
-        time.sleep(3)
+        time.sleep(3) # rate limiting
 
         count += 1
-        if count == 1:
+        if count % 2 == 0:
             new_strat_1 = input("Change strategy (p1): ")
             new_strat_prompt = f"""
-            You are a chess player with the following strategy: {new_strat_1}\n
+            You are a chess grandaster. Your task is to play chess while attempting to use the following strategy: {new_strat_1}\n
             """
             new_prompt = new_strat_prompt + PROMPT
             new_prompt_template = ChatPromptTemplate.from_template(new_prompt)
