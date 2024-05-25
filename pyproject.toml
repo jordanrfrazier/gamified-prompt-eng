@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "gamified-prompt-eng"
+version = "0.0.1"
+description = "todo"
+authors = ["Jordan Frazier <jordan.r.frazier@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.9.0,<4.0"
+langchain = "^0.2.1"
+langchain_core = "^0.2.1"
+langchain_openai = "^0.1.7"
+langgraph = "^0.0.55"
+chess = "^1.10.0"
+
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
