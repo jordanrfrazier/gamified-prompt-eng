@@ -31,16 +31,17 @@ PROMPT = """
 Analyze the current board state, then choose the best legal move that corresponds to your strategy.
 Respond in JSON format with a two fields: "move", and "reason", where "move" is the move you want to make and "reason" is the reason you chose that move.
 
-Do NOT use any illegal moves. You may need to make multiple moves in order to satisfy your strategy. For example,
-if the strategy is "move your bishops forward", you may need to move other pieces out of the way first. 
+You may need to make multiple moves in order to satisfy your strategy.
+For example, if the strategy is "move bishops forward", you may need to move other pieces out of the way first. 
+For example, if the strategy is "move queen forward", you may need to move other pieces out of the way first.
 
-Here is the current board state (FEN): {board}
+Here is the current board state (PGN): {board}
 
 The legal moves from this position are: {legal_moves}
 
 The illegal moves from this position are: {invalid_moves}
 
-Your move:
+Do not use any illegal moves. Your move:
 """
 
 class Move(BaseModel):
@@ -48,6 +49,13 @@ class Move(BaseModel):
 
 
 def get_pgn(board) -> str:
+    game = chess.pgn.Game()
+    game.headers["Event"] = "Grandmaster chess match"
+    game.headers["Site"] = "London"
+    game.headers["Date"] = time.strftime("%Y.%m.%d")
+    game.headers["Round"] = 1
+    game.headers["White"] = "Magnus Carlson"
+    game.headers["Black"] = "Hikaru Nakamura"
     pgn = str(chess.pgn.Game().from_board(board))
     return pgn
 
@@ -59,8 +67,8 @@ def try_move(player, board, pgn, legal_moves, invalid_moves = None):
     logger.debug(f"Legal moves: {legal_moves}")
     logger.debug(f"Invalid moves: {invalid_moves}")
 
-    # move = player.invoke({"board": pgn, "legal_moves": legal_moves, "invalid_moves": str(invalid_moves)})
-    move = player.invoke({"board": board.fen, "legal_moves": legal_moves, "invalid_moves": str(invalid_moves)})
+    move = player.invoke({"board": pgn, "legal_moves": legal_moves, "invalid_moves": str(invalid_moves)})
+    # move = player.invoke({"board": board.fen, "legal_moves": legal_moves, "invalid_moves": str(invalid_moves)})
     logger.info(f"Making move {move['move']} with reason {move['reason']}")
     move = move["move"]
     try:
@@ -97,10 +105,11 @@ def game_loop(board: chess.Board, llm1, llm2):
         time.sleep(3) # rate limiting
 
         count += 1
-        if count % 2 == 0:
+        # if count % 2 == 0:
+        if True:
             new_strat_1 = input("Change strategy (p1): ")
             new_strat_prompt = f"""
-            You are a chess grandaster. Your task is to play chess while attempting to use the following strategy: {new_strat_1}\n
+            You are a chess grandmaster. Your task is to play chess while attempting to use the following strategy: {new_strat_1}\n
             """
             new_prompt = new_strat_prompt + PROMPT
             new_prompt_template = ChatPromptTemplate.from_template(new_prompt)
